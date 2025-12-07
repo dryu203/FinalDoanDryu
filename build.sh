@@ -1,6 +1,15 @@
 #!/bin/sh
 set -e
-cd frontend
+echo "Current directory: $(pwd)"
+echo "Listing files:"
+ls -la
+echo "Changing to frontend directory..."
+cd frontend || exit 1
+echo "Current directory: $(pwd)"
+echo "Installing dependencies..."
 npm install
+echo "Building..."
 npm run build
+echo "Build completed. Checking output..."
+ls -la ../backend/public || echo "Output directory not found"
 
