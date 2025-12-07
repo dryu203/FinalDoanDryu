@@ -38,6 +38,21 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Kiểm tra xem có phải mobile không và tự động collapse sidebar trên mobile
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setCollapsed(true); // Auto collapse trên mobile
+      }
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const isAuthRoute = location.pathname === '/login';
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -92,12 +107,27 @@ export default function App() {
     <Link to="/login"><Button size="small" type="primary">Đăng nhập</Button></Link>
   );
 
+  // Toggle sidebar
+  const toggleSidebar = () => {
+    setCollapsed(!collapsed);
+  };
+
   return (
     <div className="app">
       <Layout className="layout">
         {!isAuthRoute && <Sidebar collapsed={collapsed} onCollapse={setCollapsed} logoSrc="/Multimedia.png" />}
+        {/* Overlay khi sidebar mở trên mobile */}
+        {!isAuthRoute && isMobile && !collapsed && (
+          <div className="sider-overlay" onClick={() => setCollapsed(true)} />
+        )}
         <Layout>
-          {!isAuthRoute && <Navbar rightContent={right} />}
+          {!isAuthRoute && (
+            <Navbar 
+              rightContent={right} 
+              onMenuClick={toggleSidebar}
+              showMenuButton={isMobile}
+            />
+          )}
           {!isAuthRoute && <ChatWidget />}
           {!isAuthRoute && <ChatbotWidget />}
           <div className="content">

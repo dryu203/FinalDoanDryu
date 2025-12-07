@@ -3,10 +3,15 @@ import ReactDOM from 'react-dom/client';
 import App from './modules/app/App';
 import { BrowserRouter } from 'react-router-dom';
 import './styles.css';
+import './styles/mobile.css';
 import 'antd/dist/reset.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { ConfigProvider, theme } from 'antd';
 import viVN from 'antd/locale/vi_VN';
+import { registerServiceWorker } from './utils/pwa';
+
+// Register Service Worker for PWA
+registerServiceWorker();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

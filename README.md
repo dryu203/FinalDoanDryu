@@ -3,7 +3,8 @@
 Monorepo cho đồ án tốt nghiệp: Xây dựng hệ thống quản lý tiến độ học tập cá nhân cho sinh viên ngành Công nghệ đa phương tiện.
 
 ### Kiến trúc
-- frontend: React + Vite + TypeScript
+- frontend: React + Vite + TypeScript (Web app)
+- mobile: React Native + TypeScript (Mobile app)
 - backend: Node.js + Express + TypeScript
 - Quản lý bằng npm workspaces, lint/format đồng bộ, CI GitHub Actions
 
@@ -12,12 +13,23 @@ Monorepo cho đồ án tốt nghiệp: Xây dựng hệ thống quản lý tiế
 - npm >= 9
 
 ### Chạy nhanh (dev)
+
+**Web App:**
 ```bash
 npm install
 npm run dev
 ```
 - Frontend: http://localhost:5173
 - Backend: http://localhost:5000
+
+**Mobile App:**
+```bash
+cd mobile
+npm install
+npm start
+# Terminal khác: npm run android (hoặc npm run ios)
+```
+Xem chi tiết trong `mobile/README.md`
 
 ### Scripts chính
 - `npm run dev`: chạy đồng thời client và server
@@ -29,12 +41,18 @@ npm run dev
 ### Cấu trúc thư mục
 ```
 .
-├─ frontend/      # Ứng dụng React
+├─ frontend/      # Ứng dụng React (Web)
 │  └─ src/
 │     ├─ pages/
 │     ├─ components/
 │     ├─ hooks/
 │     └─ services/
+├─ mobile/        # Ứng dụng React Native (Mobile)
+│  └─ src/
+│     ├─ screens/
+│     ├─ navigation/
+│     ├─ services/
+│     └─ utils/
 ├─ backend/       # API Express
 │  └─ src/
 │     ├─ routes/
@@ -75,3 +93,7 @@ npm run dev
 MIT License — xem file LICENSE
 
 
+cd D:\Study\thuc_tap_tot_nghiep\FinalDoAn
+$env:LLM_PROVIDER = "Gemini"
+$env:GEMINI_API_KEY = "AIzaSyAnFMyQ4D32zM31lj4iHvIeWHOobmr0JWM"
+$env:GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025"

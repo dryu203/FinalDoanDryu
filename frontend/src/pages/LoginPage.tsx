@@ -3,6 +3,7 @@ import { GoogleOutlined, MailOutlined, LockOutlined } from '@ant-design/icons';
 import { useEffect, useRef, useState } from 'react';
 import { authUserFromGoogleCredential, getAuthUser, setAuthUser, setAuthToken, type AuthUser } from '../services/auth';
 import { useNavigate } from 'react-router-dom';
+import { getApiBase } from '../config/api';
 
 export default function LoginPage() {
   const [form] = Form.useForm();
@@ -25,18 +26,98 @@ export default function LoginPage() {
     else navigate('/');
   };
 
-  function resolveApiBase(): string {
-    const env: any = (import.meta as any).env;
-    if (env?.VITE_API_BASE) return String(env.VITE_API_BASE).replace(/\/$/, '');
-    const isDev = typeof window !== 'undefined' && location.port === '5173';
-    return isDev ? 'http://127.0.0.1:5000' : '';
-  }
-  const API_BASE = resolveApiBase();
+  // Sử dụng API_BASE từ config/api.ts để đảm bảo nhất quán
+  const API_BASE = getApiBase();
+  
+  // Log để debug
+  useEffect(() => {
+    console.log('[LoginPage] Component mounted, API_BASE:', API_BASE);
+    console.log('[LoginPage] window.location:', {
+      origin: window.location.origin,
+      href: window.location.href,
+      pathname: window.location.pathname,
+    });
+  }, [API_BASE]);
 
   async function postJson(path: string, body: any) {
-    const res = await fetch(`${API_BASE}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
+    // Build full URL
+    const fullUrl = API_BASE ? `${API_BASE}${path}` : `${window.location.origin}${path}`;
+    
+    console.log('[LoginPage] postJson CALLED');
+    console.log('[LoginPage] postJson - Full URL:', fullUrl);
+    console.log('[LoginPage] postJson - API_BASE:', API_BASE);
+    console.log('[LoginPage] postJson - window.location.origin:', window.location.origin);
+    console.log('[LoginPage] postJson - path:', path);
+    console.log('[LoginPage] postJson - body:', { ...body, password: '[REDACTED]' });
+    
+    // Log Service Worker status
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      console.log('[LoginPage] Service Worker is ACTIVE:', navigator.serviceWorker.controller.scriptURL);
+    } else {
+      console.log('[LoginPage] Service Worker is NOT active');
+    }
+    
+    try {
+      console.log('[LoginPage] postJson - About to call fetch...');
+      
+      // iOS Safari cần credentials: 'include' để gửi requests đúng cách
+      // Thêm mode: 'cors' để đảm bảo CORS hoạt động đúng
+      const fetchOptions: RequestInit = { 
+        method: 'POST', 
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include', // Quan trọng cho iOS Safari
+        mode: 'cors', // Explicit CORS mode
+        body: JSON.stringify(body) 
+      };
+      
+      console.log('[LoginPage] postJson - Fetch options:', {
+        method: fetchOptions.method,
+        headers: fetchOptions.headers,
+        credentials: fetchOptions.credentials,
+        mode: fetchOptions.mode,
+        hasBody: !!fetchOptions.body
+      });
+      
+      const res = await fetch(fullUrl, fetchOptions);
+      
+      console.log('[LoginPage] postJson - Fetch completed!');
+      console.log('[LoginPage] postJson - Response status:', res.status);
+      console.log('[LoginPage] postJson - Response statusText:', res.statusText);
+      console.log('[LoginPage] postJson - Response ok:', res.ok);
+      console.log('[LoginPage] postJson - Response headers:', Object.fromEntries(res.headers.entries()));
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('[LoginPage] Request failed:', {
+          url: fullUrl,
+          status: res.status,
+          statusText: res.statusText,
+          error: errorText
+        });
+        throw new Error(errorText);
+      }
+      
+      const data = await res.json();
+      console.log('[LoginPage] postJson - Response data:', { hasUser: !!data.user, hasToken: !!data.token });
+      return data;
+    } catch (error: any) {
+      console.error('[LoginPage] postJson - Fetch error caught:', {
+        url: fullUrl,
+        error: error.message,
+        stack: error.stack,
+        name: error.name,
+        type: error.constructor.name
+      });
+      
+      // Re-throw với thông tin chi tiết hơn
+      const enhancedError = new Error(`Request failed: ${error.message || 'Unknown error'}`);
+      (enhancedError as any).originalError = error;
+      (enhancedError as any).url = fullUrl;
+      throw enhancedError;
+    }
   }
 
   // Tự động render nút Google "chính chủ" khi tab Đăng nhập mở và GSI sẵn sàng
@@ -80,17 +161,58 @@ export default function LoginPage() {
   }, [mode, navigate]);
 
   const onFinish = async (values: any) => {
+    console.log('[LoginPage] onFinish called with mode:', mode);
+    console.log('[LoginPage] onFinish values:', { email: values.email, hasPassword: !!values.password });
+    
     try {
       const path = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
+      console.log('[LoginPage] onFinish - Calling postJson with path:', path);
       const payload = mode === 'login'
         ? { email: values.email, password: values.password }
         : { email: values.email, password: values.password, name: values.fullName ?? values.email.split('@')[0], studentId: values.studentId };
+      
+      console.log('[LoginPage] Sending request:', {
+        path,
+        apiBase: API_BASE,
+        url: `${API_BASE}${path}`,
+        payload: { ...payload, password: '[REDACTED]' },
+      });
+
       const rs = await postJson(path, payload);
+      
+      console.log('[LoginPage] Response received:', {
+        hasUser: !!rs?.user,
+        hasToken: !!rs?.token,
+      });
+
       if (rs && rs.user) setAuthUser(rs.user);
       if (rs && rs.token) setAuthToken(rs.token);
       goAfterLogin(rs?.user as AuthUser | undefined);
     } catch (e: any) {
-      message.error(mode === 'login' ? 'Sai email hoặc mật khẩu' : 'Đăng ký thất bại (email có thể đã tồn tại)');
+      console.error('[LoginPage] onFinish - Error caught:', {
+        message: e?.message,
+        stack: e?.stack,
+        name: e?.name,
+        url: e?.url,
+        originalError: e?.originalError,
+        fullError: e
+      });
+      
+      // Parse error message nếu có
+      let errorMessage = mode === 'login' ? 'Sai email hoặc mật khẩu' : 'Đăng ký thất bại (email có thể đã tồn tại)';
+      
+      try {
+        const errorJson = JSON.parse(e?.message || '{}');
+        if (errorJson?.message === 'Email already exists') {
+          errorMessage = 'Email đã tồn tại';
+        } else if (errorJson?.message === 'Email & password required') {
+          errorMessage = 'Vui lòng nhập đầy đủ email và mật khẩu';
+        } else if (errorJson?.message) {
+          errorMessage = errorJson.message;
+        }
+      } catch {}
+      
+      message.error(errorMessage);
     }
   };
 

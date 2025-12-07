@@ -28,57 +28,141 @@ function signJwt(user: JwtUser) {
 }
 
 export const register: RequestHandler = async (req, res) => {
-  const { email, name, password } = req.body ?? {};
-  if (!email || !password) return res.status(400).json({ message: 'Email & password required' });
-  const existing = await User.findOne({ email });
-  if (existing) return res.status(409).json({ message: 'Email already exists' });
-  const passwordHash = await bcrypt.hash(password, 10);
-  const user = await User.create({
-    email,
-    name: name ?? email.split('@')[0],
-    passwordHash,
-    provider: 'local',
-    lastLoginAt: new Date(),
-  });
-  const jwtUser: JwtUser = {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role,
-    status: user.status,
-  };
-  const userDto = {
-    ...jwtUser,
-    provider: user.provider,
-    picture: user.picture,
-  };
-  const token = signJwt(jwtUser);
-  return res.json({ user: userDto, token });
+  try {
+    // eslint-disable-next-line no-console
+    console.log('[auth/register] Request received:', {
+      origin: req.headers.origin,
+      body: { email: req.body?.email, hasPassword: !!req.body?.password, name: req.body?.name },
+      contentType: req.headers['content-type'],
+    });
+
+    const { email, name, password, studentId } = req.body ?? {};
+    
+    if (!email || !password) {
+      // eslint-disable-next-line no-console
+      console.log('[auth/register] Missing email or password');
+      return res.status(400).json({ message: 'Email & password required' });
+    }
+
+    // eslint-disable-next-line no-console
+    console.log('[auth/register] Checking if user exists:', email);
+    const existing = await User.findOne({ email });
+    
+    if (existing) {
+      // eslint-disable-next-line no-console
+      console.log('[auth/register] Email already exists:', email);
+      return res.status(409).json({ message: 'Email already exists' });
+    }
+
+    // eslint-disable-next-line no-console
+    console.log('[auth/register] Creating new user:', email);
+    const passwordHash = await bcrypt.hash(password, 10);
+    const user = await User.create({
+      email,
+      name: name ?? email.split('@')[0],
+      passwordHash,
+      provider: 'local',
+      lastLoginAt: new Date(),
+      ...(studentId ? { studentId } : {}),
+    });
+
+    // eslint-disable-next-line no-console
+    console.log('[auth/register] User created successfully:', email);
+
+    const jwtUser: JwtUser = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      status: user.status,
+    };
+    const userDto = {
+      ...jwtUser,
+      provider: user.provider,
+      picture: user.picture,
+    };
+    const token = signJwt(jwtUser);
+    return res.json({ user: userDto, token });
+  } catch (error: any) {
+    // eslint-disable-next-line no-console
+    console.error('[auth/register] Error:', error);
+    return res.status(500).json({ message: 'Internal server error', error: error?.message });
+  }
 };
 
 export const login: RequestHandler = async (req, res) => {
-  const { email, password } = req.body ?? {};
-  const user = await User.findOne({ email });
-  if (!user || !user.passwordHash) return res.status(401).json({ message: 'Invalid credentials' });
-  if (user.status === 'locked') return res.status(403).json({ message: 'account_locked' });
-  const ok = await (await import('bcryptjs')).compare(password, user.passwordHash);
-  if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
-  user.lastLoginAt = new Date();
-  user.save().catch(() => {});
-  const jwtUser: JwtUser = {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role,
-    status: user.status,
-  };
-  const userDto = {
-    ...jwtUser,
-    provider: user.provider,
-    picture: user.picture,
-  };
-  const token = signJwt(jwtUser);
-  return res.json({ user: userDto, token });
+  try {
+    // eslint-disable-next-line no-console
+    console.log('[auth/login] Request received:', {
+      origin: req.headers.origin,
+      body: { email: req.body?.email, hasPassword: !!req.body?.password },
+      contentType: req.headers['content-type'],
+    });
+
+    const { email, password } = req.body ?? {};
+    
+    if (!email || !password) {
+      // eslint-disable-next-line no-console
+      console.log('[auth/login] Missing email or password');
+      return res.status(400).json({ message: 'Email & password required' });
+    }
+
+    // eslint-disable-next-line no-console
+    console.log('[auth/login] Looking for user:', email);
+    const user = await User.findOne({ email });
+    
+    if (!user) {
+      // eslint-disable-next-line no-console
+      console.log('[auth/login] User not found:', email);
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    if (!user.passwordHash) {
+      // eslint-disable-next-line no-console
+      console.log('[auth/login] User has no password hash:', email);
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    if (user.status === 'locked') {
+      // eslint-disable-next-line no-console
+      console.log('[auth/login] Account locked:', email);
+      return res.status(403).json({ message: 'account_locked' });
+    }
+
+    // eslint-disable-next-line no-console
+    console.log('[auth/login] Comparing password for user:', email);
+    const ok = await (await import('bcryptjs')).compare(password, user.passwordHash);
+    
+    if (!ok) {
+      // eslint-disable-next-line no-console
+      console.log('[auth/login] Password mismatch for user:', email);
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // eslint-disable-next-line no-console
+    console.log('[auth/login] Login successful:', email);
+    user.lastLoginAt = new Date();
+    user.save().catch(() => {});
+
+    const jwtUser: JwtUser = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      status: user.status,
+    };
+    const userDto = {
+      ...jwtUser,
+      provider: user.provider,
+      picture: user.picture,
+    };
+    const token = signJwt(jwtUser);
+    return res.json({ user: userDto, token });
+  } catch (error: any) {
+    // eslint-disable-next-line no-console
+    console.error('[auth/login] Error:', error);
+    return res.status(500).json({ message: 'Internal server error', error: error?.message });
+  }
 };
 
 export const googleSignIn: RequestHandler = async (req, res) => {

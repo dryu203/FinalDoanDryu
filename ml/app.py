@@ -3,8 +3,13 @@ from typing import Optional
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-from ml.config import BACKEND_BASE
-from ml.services.logic import handle_chat
+try:
+    from ml.config import BACKEND_BASE
+    from ml.services.logic import handle_chat
+except ImportError:
+    # Fallback for running from ml directory
+    from config import BACKEND_BASE
+    from services.logic import handle_chat
 
 
 app = FastAPI(title="Student Assistant ML Service", version="0.4.0")
