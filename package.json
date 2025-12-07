@@ -17,7 +17,7 @@
     "build": "npm-run-all build:client build:server",
     "build:client": "npm --workspace frontend run build",
     "build:server": "npm --workspace backend run build",
-    "build:vercel": "npm install --prefix frontend && npm run build --prefix frontend",
+    "build:vercel": "npm install -w frontend && npm run build -w frontend",
     "lint": "npm-run-all lint:client lint:server",
     "lint:client": "npm --workspace frontend run lint",
     "lint:server": "npm --workspace backend run lint",

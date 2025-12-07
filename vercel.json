@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm run build:vercel",
+  "buildCommand": "npm install -w frontend && npm run build -w frontend",
   "outputDirectory": "backend/public",
   "installCommand": "npm install",
   "framework": null
