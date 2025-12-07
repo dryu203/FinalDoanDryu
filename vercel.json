@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm --workspace frontend run build",
+  "buildCommand": "npm run build:vercel",
   "outputDirectory": "backend/public",
   "installCommand": "npm install",
   "framework": null
