@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "bash build.sh",
+  "buildCommand": "mkdir -p backend/public && cd frontend && npm install && npm run build",
   "outputDirectory": "backend/public",
   "installCommand": "npm install",
   "framework": null
