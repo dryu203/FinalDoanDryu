@@ -3,7 +3,6 @@
   "buildCommand": "npm install && npm run build",
   "outputDirectory": "../backend/public",
   "installCommand": "npm install",
-  "framework": null,
-  "rootDirectory": "frontend"
+  "framework": null
 }
 
