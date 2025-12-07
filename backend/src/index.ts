@@ -128,21 +128,10 @@ const PUBLIC_DIR = path.resolve(process.cwd(), 'public');
 app.use(express.static(PUBLIC_DIR, {
   // HTML files: No cache để luôn có version mới nhất
   // Assets (JS/CSS): Cache ngắn hạn vì có hash trong tên file
-  maxAge: (req, res, filePath) => {
-    // HTML files: No cache
-    if (filePath.endsWith('.html')) {
-      return 0; // No cache
-    }
-    // Service Worker: No cache
-    if (filePath.endsWith('sw.js')) {
-      return 0; // No cache
-    }
-    // Assets: Cache 1 hour (files có hash nên an toàn)
-    return 3600000; // 1 hour
-  },
+  maxAge: 3600000, // Default 1 hour for assets (will be overridden by setHeaders for HTML/SW)
   etag: true,
   lastModified: true,
-  setHeaders: (res, filePath) => {
+  setHeaders: (res: express.Response, filePath: string) => {
     // HTML files: No cache headers
     if (filePath.endsWith('.html')) {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
