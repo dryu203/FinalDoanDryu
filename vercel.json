@@ -1,6 +1,8 @@
 {
-  "buildCommand": "npm run build",
+  "version": 2,
+  "buildCommand": "npm --workspace frontend run build",
   "outputDirectory": "backend/public",
-  "installCommand": "npm install"
+  "installCommand": "npm install",
+  "framework": null
 }
 
