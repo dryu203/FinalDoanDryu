@@ -44,13 +44,29 @@ export default function LoginScreen() {
         await register(email, password, name);
       }
       
-      // Initialize socket
-      await initializeSocket();
+      // Initialize socket (non-blocking - don't fail login if socket fails)
+      initializeSocket().catch(err => {
+        console.warn('[Login] Socket initialization failed:', err);
+        // Continue anyway - socket is not critical for login
+      });
+      
+      // Small delay to ensure state is saved
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       // Navigate to tabs - _layout will detect auth state change
       router.replace('/(tabs)');
     } catch (error: any) {
-      Alert.alert('Lỗi', error.message || 'Đăng nhập thất bại');
+      console.error('[Login] Error:', error);
+      let errorMessage = 'Đăng nhập thất bại';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.toString) {
+        errorMessage = error.toString();
+      }
+      
+      Alert.alert('Lỗi', errorMessage);
+    } finally {
       setIsLoading(false);
     }
   };

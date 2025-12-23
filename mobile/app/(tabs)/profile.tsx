@@ -54,7 +54,9 @@ export default function ProfileScreen() {
           onPress: async () => {
             await signOut();
             disconnectSocket();
-            router.replace('/(auth)/login');
+            // Navigate to dashboard instead of login
+            // _layout will handle redirect to login if not authenticated
+            router.replace('/(tabs)');
           },
         },
       ]

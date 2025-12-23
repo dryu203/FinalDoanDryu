@@ -83,18 +83,18 @@ export default function RootLayout() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      {/* Test connection screen - remove after debugging */}
-      <Stack.Screen 
-        name="(auth)/test-connection" 
-        options={{ 
-          headerShown: true, 
-          title: 'Test Connection',
-          presentation: 'modal',
-        }} 
-      />
+      {/* Routes are automatically discovered from (auth) and (tabs) folders */}
+      {/* Only define custom screen options if needed */}
+      {__DEV__ && (
+        <Stack.Screen 
+          name="(auth)/test-connection" 
+          options={{ 
+            headerShown: true, 
+            title: 'Test Connection',
+            presentation: 'modal',
+          }} 
+        />
+      )}
     </Stack>
   );
 }
-

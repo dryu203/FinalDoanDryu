@@ -59,6 +59,8 @@ export async function setAuthToken(token: string | null): Promise<void> {
 // Login với email/password
 export async function login(email: string, password: string): Promise<{ user: AuthUser; token: string }> {
   try {
+    console.log('[Auth] Attempting login to:', `${API_BASE}/api/auth/login`);
+    
     const res = await fetch(`${API_BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -66,21 +68,50 @@ export async function login(email: string, password: string): Promise<{ user: Au
     });
 
     if (!res.ok) {
-      const error = await res.text();
-      throw new Error(error || `Login failed: ${res.status} ${res.statusText}`);
+      const errorText = await res.text();
+      let errorMessage = errorText;
+      
+      // Try to parse as JSON for better error message
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorJson.error || errorText;
+      } catch {
+        // Not JSON, use text as is
+      }
+      
+      console.error('[Auth] Login failed:', res.status, errorMessage);
+      throw new Error(errorMessage || `Đăng nhập thất bại: ${res.status} ${res.statusText}`);
     }
 
     const data = await res.json();
+    
+    if (!data.user || !data.token) {
+      throw new Error('Server không trả về thông tin đăng nhập đầy đủ');
+    }
+    
     const { user, token } = data;
-
+    
+    console.log('[Auth] Login successful, saving user and token');
     await setAuthUser(user);
     await setAuthToken(token);
-
+    
+    // Verify saved
+    const savedUser = await getAuthUser();
+    if (!savedUser) {
+      throw new Error('Không thể lưu thông tin đăng nhập');
+    }
+    
+    console.log('[Auth] User saved successfully');
     return { user, token };
   } catch (error: any) {
+    console.error('[Auth] Login error:', error);
+    
     // Improve error message for network errors
-    if (error.message?.includes('Network request failed') || error.message?.includes('fetch')) {
-      throw new Error(`Không thể kết nối đến server. Kiểm tra:\n- Backend đang chạy?\n- API URL: ${API_BASE}\n- Cùng WiFi network?`);
+    if (error.message?.includes('Network request failed') || 
+        error.message?.includes('fetch') ||
+        error.message?.includes('Failed to fetch') ||
+        error.name === 'TypeError') {
+      throw new Error(`Không thể kết nối đến server.\n\nKiểm tra:\n- Backend đang chạy?\n- API URL: ${API_BASE}\n- Cùng WiFi network?\n- Firewall không chặn?`);
     }
     throw error;
   }
