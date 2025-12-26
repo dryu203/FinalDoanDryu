@@ -131,7 +131,7 @@ export const login: RequestHandler = async (req, res) => {
 
     // eslint-disable-next-line no-console
     console.log('[auth/login] Comparing password for user:', email);
-    const ok = await (await import('bcryptjs')).compare(password, user.passwordHash);
+    const ok = await bcrypt.compare(password, user.passwordHash);
     
     if (!ok) {
       // eslint-disable-next-line no-console
@@ -228,7 +228,7 @@ export const resetPassword: RequestHandler = async (req, res) => {
   if (!email || !newPassword) return res.status(400).json({ message: 'email & newPassword required' });
   const user = await User.findOne({ email });
   if (!user) return res.status(404).json({ message: 'User not found' });
-  user.passwordHash = await (await import('bcryptjs')).hash(newPassword, 10);
+  user.passwordHash = await bcrypt.hash(newPassword, 10);
   await user.save();
   return res.json({ ok: true });
 };

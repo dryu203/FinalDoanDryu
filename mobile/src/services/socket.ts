@@ -25,24 +25,40 @@ export async function initializeSocket(): Promise<Socket | null> {
   }
 
   try {
+    // Disconnect existing instance if any
+    if (socketInstance) {
+      socketInstance.removeAllListeners();
+      socketInstance.disconnect();
+      socketInstance = null;
+    }
+
     socketInstance = io(API_BASE, {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity, // Keep trying to reconnect
+      reconnectionDelayMax: 5000,
     });
 
     socketInstance.on('connect', () => {
       console.log('[Socket] Connected');
+      // Auto-join global room on connect/reconnect
+      socketInstance?.emit('chat:join', 'global');
     });
 
-    socketInstance.on('disconnect', () => {
-      console.log('[Socket] Disconnected');
+    socketInstance.on('disconnect', (reason) => {
+      console.log('[Socket] Disconnected:', reason);
     });
 
     socketInstance.on('connect_error', (error) => {
       console.error('[Socket] Connection error:', error);
+    });
+
+    socketInstance.on('reconnect', (attemptNumber) => {
+      console.log('[Socket] Reconnected after', attemptNumber, 'attempts');
+      // Re-join global room on reconnect
+      socketInstance?.emit('chat:join', 'global');
     });
 
     return socketInstance;
@@ -54,6 +70,8 @@ export async function initializeSocket(): Promise<Socket | null> {
 
 /**
  * Lấy socket instance hiện tại
+ * Trả về null nếu chưa được initialize
+ * Nên gọi initializeSocket() trước khi dùng
  */
 export function getSocket(): Socket | null {
   return socketInstance;

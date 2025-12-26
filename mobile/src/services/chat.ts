@@ -36,17 +36,35 @@ export function subscribeToMessages(
   onMessage: MessageHandler
 ): () => void {
   const socket = getSocket();
-  if (!socket) return () => {};
+  if (!socket) {
+    console.warn('[Chat] Socket not initialized, cannot subscribe to messages');
+    return () => {};
+  }
 
+  // Join room
   socket.emit('chat:join', room);
-  socket.on('chat:message', (payload: ChatMessageDto) => {
+  
+  // Create a specific handler function so we can remove it later
+  const messageHandler = (payload: ChatMessageDto) => {
     if (payload.room === room) {
       onMessage(payload);
     }
-  });
+  };
 
+  // Subscribe to messages
+  socket.on('chat:message', messageHandler);
+
+  // Re-join room on reconnect
+  const reconnectHandler = () => {
+    console.log('[Chat] Socket reconnected, rejoining room:', room);
+    socket.emit('chat:join', room);
+  };
+  socket.on('connect', reconnectHandler);
+
+  // Cleanup function
   return () => {
-    socket.off('chat:message');
+    socket.off('chat:message', messageHandler);
+    socket.off('connect', reconnectHandler);
     socket.emit('chat:leave', room);
   };
 }
@@ -90,14 +108,16 @@ export function subscribeToTyping(
   const socket = getSocket();
   if (!socket) return () => {};
 
-  socket.on('chat:typing', (data) => {
+  const typingHandler = (data: { room: string; userId: string; userName?: string; typing: boolean }) => {
     if (data.room === room) {
       onTyping(data);
     }
-  });
+  };
+
+  socket.on('chat:typing', typingHandler);
 
   return () => {
-    socket.off('chat:typing');
+    socket.off('chat:typing', typingHandler);
   };
 }
 
